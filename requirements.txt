@@ -1,0 +1,4 @@
+curl_cffi>=0.7
+requests>=2.31
+lossless-verify @ git+https://github.com/tdbdox/lossless-verify.git@b06f65f11057193c2080fb5cadef6d7c1992f0ad
+mutagen>=1.47

@@ -1,0 +1,78 @@
+services:
+  slskd:
+    image: slskd/slskd:0.26.2
+    container_name: slskd
+    restart: unless-stopped
+    user: "${PUID:-1000}:${PGID:-1000}"
+    environment:
+      - SLSKD_REMOTE_CONFIGURATION=false
+      - SLSKD_SLSK_USERNAME=${SLSK_USERNAME}
+      - SLSKD_SLSK_PASSWORD=${SLSK_PASSWORD}
+      - SLSKD_SLSK_LISTEN_PORT=${SLSK_LISTEN_PORT:-45300}
+      # Administrator key used by bandcamp-sync (16-255 chars, see .env.example)
+      - SLSKD_API_KEY=role=Administrator;cidr=0.0.0.0/0,::/0;${SLSKD_API_KEY}
+      - SLSKD_DOWNLOADS_DIR=/downloads
+      - SLSKD_INCOMPLETE_DIR=/incomplete
+      - SLSKD_SHARED_DIR=/shared
+      - SLSKD_UMASK=0002
+      # OpenAPI spec + UI at /swagger (needed to check endpoints against the pinned version)
+      - SLSKD_SWAGGER=true
+    ports:
+      # Web UI + API: localhost only (default UI login is slskd/slskd, change it)
+      - "127.0.0.1:5030:5030"
+      # Soulseek peer port: forward this one on your router to get incoming connections. Same number
+      # inside and outside: it is announced to the Soulseek server. Keep it below 49152: Windows
+      # reserves ranges above (netsh interface ipv4 show excludedportrange protocol=tcp) and
+      # Docker then fails with "ports are not available".
+      - "${SLSK_LISTEN_PORT:-45300}:${SLSK_LISTEN_PORT:-45300}"
+    volumes:
+      - ./data/slskd/app:/app
+      - ./data/slskd/downloads:/downloads
+      - ./data/slskd/incomplete:/incomplete
+      # Shared with other Soulseek users (some peers refuse users who share nothing). Read-only.
+      - ./data/slskd/shared:/shared:ro
+
+  bandcamp-sync:
+    build:
+      context: .
+      target: runtime  # the Dockerfile's last stage is `test`: never build that one by default
+    image: bandarr:latest
+    container_name: bandcamp-sync
+    restart: unless-stopped
+    init: true
+    user: "${PUID:-1000}:${PGID:-1000}"
+    depends_on:
+      slskd:
+        condition: service_healthy
+    # Only what the sync needs: not the Soulseek password.
+    environment:
+      - BANDCAMP_USER=${BANDCAMP_USER}
+      - BANDCAMP_IDENTITY=${BANDCAMP_IDENTITY:-}
+      - SLSKD_URL=http://slskd:5030
+      - SLSKD_API_KEY=${SLSKD_API_KEY}
+      - DATA_DIR=/data
+      # One run every 3 h, at most 30 pending tracks per run (SYNC_LIMIT)
+      - SCRIPT_INTERVAL=${SCRIPT_INTERVAL:-600}
+      - SYNC_LIMIT=${SYNC_LIMIT:-10}
+      - GATE_RULE=${GATE_RULE:-both}
+      - MAX_SOURCE_TRIES=${MAX_SOURCE_TRIES:-3}
+      - UPGRADE=${UPGRADE:-1}
+      - UPGRADE_LIMIT=${UPGRADE_LIMIT:-10}
+      - UPGRADE_INTERVAL_H=${UPGRADE_INTERVAL_H:-4}
+      - NOT_FOUND_RETRY_H=${NOT_FOUND_RETRY_H:-3}
+      # Soulseek users never used as a source (comma separated, case-insensitive)
+      - BLOCKED_PEERS=${BLOCKED_PEERS:-}
+      # Refused copy accepted when this many tracks of its own folder (same peer) passed the gate; 0 = off
+      - CONSENSUS_MIN=${CONSENSUS_MIN:-3}
+      - QUEUE_MAX_AGE_DAYS=${QUEUE_MAX_AGE_DAYS:-7}
+      - DELETE_REPLACED=${DELETE_REPLACED:-0}
+      - KEEP_ORIGINALS=${KEEP_ORIGINALS:-0}
+      # Tracks handled in parallel (downloads overlap; Soulseek searches stay one at a time)
+      - DOWNLOAD_WORKERS=${DOWNLOAD_WORKERS:-3}
+      - SEARCH_GAP_S=${SEARCH_GAP_S:-3}
+      - RETRY_BASE_H=${RETRY_BASE_H:-1}
+      - RETRY_MAX_H=${RETRY_MAX_H:-24}
+    volumes:
+      # One mount for everything (state.db, master/, review/, replaced/, covers/ and slskd's
+      # downloads at data/slskd/downloads): moves between them stay instant renames.
+      - ./data:/data
