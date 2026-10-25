@@ -1,4 +1,4 @@
-# Bandarr : wishlist Bandcamp → Soulseek → AIFF pour DJ
+# Bandarr : wishlist Bandcamp → Soulseek → AIFF
 
 Bandarr lit une **wishlist Bandcamp**, cherche chaque piste sur **Soulseek** (via [slskd](https://github.com/slskd/slskd)), la télécharge, vérifie qu'elle n'est pas un **transcode** depuis du lossy, convertit les FLAC en **AIFF**, écrit les tags et dépose le fichier dans un dossier plat `Artiste - Titre`. 
 
