@@ -1,6 +1,6 @@
 # Bandarr : wishlist Bandcamp → Soulseek → AIFF pour DJ
 
-Bandarr lit une **wishlist Bandcamp**, cherche chaque piste sur **Soulseek** (via [slskd](https://github.com/slskd/slskd)), la télécharge, vérifie qu'elle n'est pas un **transcode** depuis du lossy, convertit les FLAC en **AIFF**, écrit les tags et dépose le fichier dans un dossier plat `Artiste - Titre`. Un logiciel DJ (rekordbox, par exemple) importe ce dossier et s'occupe de la clé USB, qui est hors périmètre.
+Bandarr lit une **wishlist Bandcamp**, cherche chaque piste sur **Soulseek** (via [slskd](https://github.com/slskd/slskd)), la télécharge, vérifie qu'elle n'est pas un **transcode** depuis du lossy, convertit les FLAC en **AIFF**, écrit les tags et dépose le fichier dans un dossier plat `Artiste - Titre`. 
 
 C'est un **dépannage avant achat** : entre deux achats sur Bandcamp, on peut déjà mixer les morceaux de la wishlist. L'achat Bandcamp reste la version de référence ; la copie Soulseek est temporaire.
 
